@@ -1,4 +1,6 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
+
 from snippets.models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
 
 
@@ -34,6 +36,17 @@ from snippets.models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
 # 一组自动确定的字段。
 # create()和update()方法的简单默认实现。
 class SnippetSerializer(serializers.ModelSerializer):
+    # 序列化的时候取出owner对象里的username，赋值给snippet的owner字段，确保meta里也添加owner了
+    owner = serializers.ReadOnlyField(source='owner.username')
+
     class Meta:
         model = Snippet
-        fields = ['id', 'title', 'code', 'linenos', 'language', 'style']
+        fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'owner']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    snippets = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'snippets']
