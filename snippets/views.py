@@ -3,14 +3,15 @@ from django.http import Http404
 from django.shortcuts import render
 
 # Create your views here.
-from rest_framework import permissions
+from rest_framework import permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import renderers
 from rest_framework import viewsets
 
+from snippets.filter import SnippetFilter
 from snippets.models import Snippet
-from snippets.permissions import IsOwnerOrReadOnly
+from snippets.permissions import IsOwnerOrReadOnly, MyDjangoModelPermissions
 from snippets.serializers import SnippetSerializer, UserSerializer
 
 
@@ -35,8 +36,22 @@ class SnippetViewSet(viewsets.ModelViewSet):
     serializer_class = SnippetSerializer
 
     # 添加permission_classes，做权限控制，定制化权限，仅允许snippet的owner进行编辑操作(IsOwnerOrReadOnly)
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
+    # 有这个model权限的人才可以操作
+    permission_classes = [permissions.DjangoModelPermissions,
                           IsOwnerOrReadOnly]
+
+    # 过滤器相关使用
+    # 过滤器，简单的基于相等的过滤，在这里设置上哪个字段，哪个字段就会进行精确查询
+    # filterset_fields = ['title', 'code']
+
+    # 模糊查询搜索，在url后添加search参数，将会自动搜索title中符合条件的数据返回，模糊查询，但不是根据字段，而是根据search设置的字段
+    # 按需注册到backends中，要想既提供搜索，又提供精确过滤/模糊过滤，就需要注册两个filter，
+    # 这里的优先级最高，这里要是注册了filter_backends，就以这里的为准，setting中的就无效了
+    # filter_backends = [filters.SearchFilter]
+    # search_fields = ['title']
+
+    # 自定义一个过滤器类，指定过滤的逻辑
+    filter_class = SnippetFilter
 
     # 请注意，我们还使用@action装饰器创建了一个名为 的自定义操作highlight。这个装饰可以用来添加不符合标准的任何自定义端点create/ update/delete风格。
     @action(detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
